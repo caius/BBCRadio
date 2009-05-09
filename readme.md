@@ -2,6 +2,10 @@
 
 The rational behind this app is so I can listen to BBC radio through iPlayer without accidentally closing a tab in my browser and cutting it off.
 
+## Screenshot
+
+![BBCRadio Sccreenshot](BBCRadio.png)
+
 ## Future Stuff
 
 * Respond to media key (play/pause)
