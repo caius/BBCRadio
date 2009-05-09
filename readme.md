@@ -4,7 +4,7 @@ The rational behind this app is so I can listen to BBC radio through iPlayer wit
 
 ## Screenshot
 
-![BBCRadio Sccreenshot](BBCRadio.png)
+![BBCRadio Sccreenshot](http://github.com/caius/BBCRadio/raw/master/BBCRadio.png)
 
 ## Future Stuff
 
