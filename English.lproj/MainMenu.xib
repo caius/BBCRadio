@@ -1363,7 +1363,7 @@ AAAAAAAAdGV4dAAAAABDb3B5cmlnaHQgQXBwbGUsIEluYy4sIDIwMDkAA</bytes>
 								<object class="NSButtonCell" id="101454545">
 									<int key="NSCellFlags">67239424</int>
 									<int key="NSCellFlags2">0</int>
-									<string key="NSContents">Radio 6music</string>
+									<string key="NSContents">6music</string>
 									<reference key="NSSupport" ref="894563434"/>
 									<reference key="NSControlView" ref="627835496"/>
 									<int key="NSButtonFlags">1211912703</int>
@@ -3400,6 +3400,7 @@ AAMAAAABAAEAAAFTAAMAAAAEAAAFwgAAAAAACAAIAAgACAABAAEAAQABA</bytes>
 					<string>459.IBPluginDependency</string>
 					<string>460.IBPluginDependency</string>
 					<string>466.IBPluginDependency</string>
+					<string>468.IBPluginDependency</string>
 					<string>5.IBPluginDependency</string>
 					<string>5.ImportedFromIB2</string>
 					<string>56.IBPluginDependency</string>
@@ -3635,6 +3636,7 @@ AAMAAAABAAEAAAFTAAMAAAAEAAAFwgAAAAAACAAIAAgACAABAAEAAQABA</bytes>
 					<string>com.apple.InterfaceBuilder.CocoaPlugin</string>
 					<string>com.apple.InterfaceBuilder.CocoaPlugin</string>
 					<string>com.apple.WebKitIBPlugin</string>
+					<string>com.apple.InterfaceBuilder.CocoaPlugin</string>
 					<string>com.apple.InterfaceBuilder.CocoaPlugin</string>
 					<reference ref="9"/>
 					<string>com.apple.InterfaceBuilder.CocoaPlugin</string>

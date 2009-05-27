@@ -30,7 +30,6 @@
     NSString * stationTitle = [[stations selectedCell] title];
     stationTitle = [stationTitle lowercaseString];
     stationTitle = [stationTitle stringByReplacingOccurrencesOfString:@" " withString:@"_"];
-    stationTitle = [stationTitle stringByReplacingOccurrencesOfString:@"radio_" withString:@""];
     
     NSLog(@"Station: %@", stationTitle);    
         
