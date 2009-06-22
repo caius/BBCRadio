@@ -14,8 +14,12 @@
   IBOutlet NSMatrix * stations;
   
   IBOutlet WebView * webview;
+    
+  BOOL resizable; // Starts in simple view
 }
 
-- (IBAction) toggleButtonClicked:(id)sender;
+- (IBAction) toggleButtonClicked: (id)sender;
+- (IBAction) showDetailView: (id)sender;
+- (IBAction) showBasicView: (id)sender;
 
 @end
