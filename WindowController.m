@@ -20,7 +20,7 @@
 - (NSSize) minimumWindowSize;
 - (NSSize) detailViewDefaultSize;
 - (NSRect) NSRectWithOriginFrom:(NSWindow*)window andSize:(NSSize)size;
-- (void) toggleMenuItems;
+- (void) setMenuItems;
 - (BOOL) isSimpleView;
 - (NSMenu*) viewMenu;
 
@@ -39,11 +39,7 @@
   [webview setMaintainsBackForwardList:NO];
   
   [[self viewMenu] setAutoenablesItems:NO];
-  [self toggleMenuItems];
-  
-  NSLog(@"Main Menu: %@", [NSApp mainMenu]);
-  NSLog(@"View Menu: %@", [self viewMenu]);
-  NSLog(@"Simple Item: %@", [[self viewMenu] itemWithTag:SIMPLE_TAG]);
+  [self setMenuItems];
 }
 
 - (IBAction) toggleButtonClicked:(id)sender
@@ -80,16 +76,15 @@
   NSRect newSize = [self NSRectWithOriginFrom:[self window] andSize:[self detailViewDefaultSize]];
   [[self window] setFrame:newSize display:YES animate:YES];
   
-  [self toggleMenuItems];
+  [self setMenuItems];
 }
 
 - (IBAction) showBasicView: (id)sender
 {
-  
   NSRect newSize = [self NSRectWithOriginFrom:[self window] andSize:[self minimumWindowSize]];
   [[self window] setFrame:newSize display:YES animate:YES];
   
-  [self toggleMenuItems];
+  [self setMenuItems];
 }
 
 @end
@@ -122,7 +117,8 @@
   return NSMakeRect([window frame].origin.x, [window frame].origin.y, size.width, size.height);
 }
 
-- (void) toggleMenuItems
+// En/Dis-ables the menu items as appropriate for current window size.
+- (void) setMenuItems
 {
   if ([self isSimpleView]) {
     // Its the simple view
