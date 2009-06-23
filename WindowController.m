@@ -21,8 +21,11 @@
 - (NSSize) detailViewDefaultSize;
 - (NSRect) NSRectWithOriginFrom:(NSWindow*)window andSize:(NSSize)size;
 - (void) setMenuItems;
+- (void) disableMenuItems;
 - (BOOL) isSimpleView;
 - (NSMenu*) viewMenu;
+- (NSSize)windowWillResize:(NSWindow *) window toSize:(NSSize)newSize;
+- (BOOL)windowShouldZoom:(NSWindow *)window toFrame:(NSRect)newFrame;
 
 @end
 
@@ -36,10 +39,21 @@
 
 - (void) awakeFromNib
 {
+  // Disable history in the webkit view - It'd
+  // be a waste of memory for no good reason.
   [webview setMaintainsBackForwardList:NO];
   
+  // Gotta do this to be able to (en|dis)able menu items
   [[self viewMenu] setAutoenablesItems:NO];
+  // Make sure they are set properly
   [self setMenuItems];
+  
+  // Show or hide hide the window's resizing controls:
+  [[[self window] standardWindowButton:NSWindowZoomButton] setHidden:[self isSimpleView]];
+  [[self window] setShowsResizeIndicator:![self isSimpleView]];
+  
+  // Set the window's minimum size
+  [[self window] setMinSize:[self detailViewDefaultSize]];
 }
 
 - (IBAction) toggleButtonClicked:(id)sender
@@ -73,17 +87,31 @@
 
 - (IBAction) showDetailView: (id)sender
 {
+  [self disableMenuItems];
+  
+  // Resize the window
   NSRect newSize = [self NSRectWithOriginFrom:[self window] andSize:[self detailViewDefaultSize]];
   [[self window] setFrame:newSize display:YES animate:YES];
+
+  // Show the resize corner
+  [[self window] setShowsResizeIndicator:YES];
   
+  // Enable the right menu items
   [self setMenuItems];
 }
 
 - (IBAction) showBasicView: (id)sender
 {
+  [self disableMenuItems];
+  
+  // Resize the window
   NSRect newSize = [self NSRectWithOriginFrom:[self window] andSize:[self minimumWindowSize]];
   [[self window] setFrame:newSize display:YES animate:YES];
   
+  // Hide the resize corner
+  [[self window] setShowsResizeIndicator:NO];
+  
+  // Enable the right menu items
   [self setMenuItems];
 }
 
@@ -102,12 +130,15 @@
 
 - (NSSize) detailViewDefaultSize
 {
-  NSSize winSize = [self minimumWindowSize];
-  NSSize webSize = [webview frame].size;
-  NSNumber *width = [NSNumber numberWithInt:(winSize.width + webSize.width + 80)];
-  NSNumber *height = [NSNumber numberWithInt:(winSize.height + webSize.height + 80)];
+  NSSize minWidth = [self minimumWindowSize];
   
-  NSSize detailSize = NSMakeSize([height floatValue], [width floatValue]);
+  int defWidth = 555;
+  int defHeight = 300;
+  
+  NSNumber *width = [NSNumber numberWithInt:(defWidth > minWidth.width ? defWidth : minWidth.width)];
+  NSNumber *height = [NSNumber numberWithInt:(defHeight > minWidth.height ? defHeight : minWidth.height)];
+    
+  NSSize detailSize = NSMakeSize([width floatValue], [height floatValue]);
   
   return detailSize;
 }
@@ -131,6 +162,12 @@
   }
 }
 
+- (void) disableMenuItems
+{
+  [[[self viewMenu] itemWithTag:DETAIL_TAG] setEnabled:NO];
+  [[[self viewMenu] itemWithTag:SIMPLE_TAG] setEnabled:NO];
+}
+
 - (BOOL) isSimpleView
 {
   // Comparing NSSize == NSSize complains about binary comparison.
@@ -141,6 +178,20 @@
 - (NSMenu*) viewMenu
 {
   return [[[NSApp mainMenu] itemWithTag:VIEW_MENU_TAG] submenu];
+}
+
+- (NSSize)windowWillResize:(NSWindow *) window toSize:(NSSize)newSize
+{
+  if([[self window] showsResizeIndicator])
+    return newSize; //resize happens
+  else
+    return [[self window] frame].size; //no change
+}
+
+- (BOOL)windowShouldZoom:(NSWindow *)window toFrame:(NSRect)newFrame
+{
+  //let the zoom happen iff showsResizeIndicator is YES
+  return [[self window] showsResizeIndicator];
 }
 
 @end
