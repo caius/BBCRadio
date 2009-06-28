@@ -15,6 +15,9 @@
 #define SIMPLE_TAG 150
 #define DETAIL_TAG 155
 
+#define VIEW_BORDER 20.0
+#define TITLEBAR_HEIGHT 22.0
+
 @interface WindowController (Private)
 
 - (NSSize) minimumWindowSize;
@@ -26,6 +29,7 @@
 - (NSMenu*) viewMenu;
 - (NSSize)windowWillResize:(NSWindow *) window toSize:(NSSize)newSize;
 - (BOOL)windowShouldZoom:(NSWindow *)window toFrame:(NSRect)newFrame;
+- (void) resizeWebkitViewWithWindowSize:(NSSize)winSize;
 
 @end
 
@@ -182,9 +186,10 @@
 
 - (NSSize)windowWillResize:(NSWindow *) window toSize:(NSSize)newSize
 {
-  if([[self window] showsResizeIndicator])
+  if ([[self window] showsResizeIndicator]) {
+    [self resizeWebkitViewWithWindowSize:newSize];
     return newSize; //resize happens
-  else
+  } else
     return [[self window] frame].size; //no change
 }
 
@@ -192,6 +197,27 @@
 {
   //let the zoom happen iff showsResizeIndicator is YES
   return [[self window] showsResizeIndicator];
+}
+
+- (void) resizeWebkitViewWithWindowSize:(NSSize)winSize
+{
+  // Work out new y and height
+  // 1. Figure out new height.
+  NSNumber *newHeight = [NSNumber numberWithFloat:(winSize.height - (VIEW_BORDER*2) - TITLEBAR_HEIGHT)];
+  // 2. Calc difference between old height & new height
+  NSNumber *heightDiff = [NSNumber numberWithFloat:([newHeight floatValue] - [webview frame].size.height)];
+  // 3. Subtract difference in 2 from y
+  NSNumber *newY = [NSNumber numberWithFloat:([webview frame].origin.y - [heightDiff floatValue])];
+  
+  // Work out new x and width
+  // 1. Figure out new width
+  NSNumber *newWidth = [NSNumber numberWithFloat:((winSize.width - [webview frame].origin.x)-VIEW_BORDER)];
+  // 2. Figure out new x
+  NSNumber *newX = [NSNumber numberWithFloat:[webview frame].origin.x];
+
+  // Set new size for webview
+  NSRect newFrame = NSMakeRect([newX floatValue], [newY floatValue], [newWidth floatValue], [newHeight floatValue]);
+  [webview setFrame:newFrame];
 }
 
 @end
