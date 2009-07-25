@@ -9,10 +9,10 @@
 #import <Cocoa/Cocoa.h>
 #import <WebKit/WebKit.h>
 
-@interface WindowController : NSWindowController {
+@interface AppController : NSWindowController {
   IBOutlet NSButton * toggleButton;
   IBOutlet NSMatrix * stations;
-  
+
   IBOutlet WebView * webview;
     
   BOOL resizable; // Starts in simple view

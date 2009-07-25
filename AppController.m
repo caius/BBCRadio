@@ -6,7 +6,7 @@
 //  Copyright 2009 Hentan Software. All rights reserved.
 //
 
-#import "WindowController.h"
+#import "AppController.h"
 
 #define TITLE_STOP  @"Stop"
 #define TITLE_START @"Start"
@@ -18,7 +18,13 @@
 #define VIEW_BORDER 20.0
 #define TITLEBAR_HEIGHT 22.0
 
-@interface WindowController (Private)
+#define DETAIL_WIDTH 830
+#define DETAIL_HEIGHT 493
+
+#define MIN_WEBKIT_WIDTH 300.0
+#define MIN_WEBKIT_HEIGHT 300.0
+
+@interface AppController ()
 
 - (NSSize) minimumWindowSize;
 - (NSSize) detailViewDefaultSize;
@@ -33,7 +39,7 @@
 
 @end
 
-@implementation WindowController
+@implementation AppController
 
 - (id) init
 {
@@ -57,7 +63,8 @@
   [[self window] setShowsResizeIndicator:![self isSimpleView]];
   
   // Set the window's minimum size
-  [[self window] setMinSize:[self detailViewDefaultSize]];
+  [[self window] setMinSize:[self detailViewDefaultSize]];  
+  [self showBasicView:nil];
 }
 
 - (IBAction) toggleButtonClicked:(id)sender
@@ -95,8 +102,18 @@
   
   // Resize the window
   NSRect newSize = [self NSRectWithOriginFrom:[self window] andSize:[self detailViewDefaultSize]];
+  [self windowWillResize:[self window] toSize:newSize.size];
   [[self window] setFrame:newSize display:YES animate:YES];
-
+  
+  // Reposition the viewport
+  [webview stringByEvaluatingJavaScriptFromString:@"window.scrollTo(163, 148);"];
+  [webview stringByEvaluatingJavaScriptFromString:@"var rules = 'body { overflow: hidden; }';\n"
+   "var ref = document.createElement('style');\n"
+   "ref.setAttribute('rel', 'stylesheet');\n"
+   "ref.setAttribute('type', 'text/css');\n"
+   "document.getElementsByTagName('head')[0].appendChild(ref);\n"
+   "ref.appendChild(document.createTextNode(rules));"];
+  
   // Show the resize corner
   [[self window] setShowsResizeIndicator:YES];
   
@@ -119,10 +136,6 @@
   [self setMenuItems];
 }
 
-@end
-
-@implementation WindowController (Private)
-
 - (NSSize) minimumWindowSize
 {
   NSNumber *minWidth = [NSNumber numberWithFloat:([stations frame].size.width + 40)];
@@ -135,12 +148,9 @@
 - (NSSize) detailViewDefaultSize
 {
   NSSize minWidth = [self minimumWindowSize];
-  
-  int defWidth = 555;
-  int defHeight = 300;
-  
-  NSNumber *width = [NSNumber numberWithInt:(defWidth > minWidth.width ? defWidth : minWidth.width)];
-  NSNumber *height = [NSNumber numberWithInt:(defHeight > minWidth.height ? defHeight : minWidth.height)];
+    
+  NSNumber *width = [NSNumber numberWithInt:(DETAIL_WIDTH > minWidth.width ? DETAIL_WIDTH : minWidth.width)];
+  NSNumber *height = [NSNumber numberWithInt:(DETAIL_HEIGHT > minWidth.height ? DETAIL_HEIGHT : minWidth.height)];
     
   NSSize detailSize = NSMakeSize([width floatValue], [height floatValue]);
   
@@ -186,38 +196,48 @@
 
 - (NSSize)windowWillResize:(NSWindow *) window toSize:(NSSize)newSize
 {
-  if ([[self window] showsResizeIndicator]) {
+  if (newSize.width >= [self detailViewDefaultSize].width && newSize.height >= [self detailViewDefaultSize].height)
     [self resizeWebkitViewWithWindowSize:newSize];
+  
+  if ([[self window] showsResizeIndicator])
     return newSize; //resize happens
-  } else
+  else
     return [[self window] frame].size; //no change
 }
 
 - (BOOL)windowShouldZoom:(NSWindow *)window toFrame:(NSRect)newFrame
 {
-  //let the zoom happen iff showsResizeIndicator is YES
+  //let the zoom happen if showsResizeIndicator is YES
   return [[self window] showsResizeIndicator];
 }
 
 - (void) resizeWebkitViewWithWindowSize:(NSSize)winSize
 {
+  NSLog(@"%s", _cmd);
+  NSRect newFrame;
+
+  NSLog(@"Frame: %@", NSStringFromRect([webview frame]));
+  NSLog(@"Bounds: %@", NSStringFromRect([webview bounds]));
+  
   // Work out new y and height
   // 1. Figure out new height.
-  NSNumber *newHeight = [NSNumber numberWithFloat:(winSize.height - (VIEW_BORDER*2) - TITLEBAR_HEIGHT)];
+  float newHeight = (winSize.height - (VIEW_BORDER*2) - TITLEBAR_HEIGHT);
+  newFrame.size.height = (newHeight > MIN_WEBKIT_HEIGHT ? newHeight : MIN_WEBKIT_HEIGHT);
   // 2. Calc difference between old height & new height
-  NSNumber *heightDiff = [NSNumber numberWithFloat:([newHeight floatValue] - [webview frame].size.height)];
+  NSNumber *heightDiff = [NSNumber numberWithFloat:(newFrame.size.height - [webview frame].size.height)];
   // 3. Subtract difference in 2 from y
-  NSNumber *newY = [NSNumber numberWithFloat:([webview frame].origin.y - [heightDiff floatValue])];
+  newFrame.origin.y = ([webview frame].origin.y - [heightDiff floatValue]);
   
   // Work out new x and width
   // 1. Figure out new width
-  NSNumber *newWidth = [NSNumber numberWithFloat:((winSize.width - [webview frame].origin.x)-VIEW_BORDER)];
+  float newWidth = ((winSize.width - [webview frame].origin.x)-VIEW_BORDER);
+  newFrame.size.width = (newWidth > MIN_WEBKIT_WIDTH ? newWidth : MIN_WEBKIT_WIDTH);
   // 2. Figure out new x
-  NSNumber *newX = [NSNumber numberWithFloat:[webview frame].origin.x];
+  newFrame.origin.x = [webview frame].origin.x;
 
   // Set new size for webview
-  NSRect newFrame = NSMakeRect([newX floatValue], [newY floatValue], [newWidth floatValue], [newHeight floatValue]);
   [webview setFrame:newFrame];
+  [webview setNeedsDisplay:YES];
 }
 
 @end
