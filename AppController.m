@@ -21,31 +21,24 @@
 #define DETAIL_WIDTH 830
 #define DETAIL_HEIGHT 493
 
-#define MIN_WEBKIT_WIDTH 300.0
-#define MIN_WEBKIT_HEIGHT 300.0
-
 @interface AppController ()
 
-- (NSSize) minimumWindowSize;
-- (NSSize) detailViewDefaultSize;
+- (NSSize) simpleViewSize;
+- (NSSize) detailViewSize;
 - (NSRect) NSRectWithOriginFrom:(NSWindow*)window andSize:(NSSize)size;
 - (void) setMenuItems;
 - (void) disableMenuItems;
 - (BOOL) isSimpleView;
 - (NSMenu*) viewMenu;
 - (NSSize)windowWillResize:(NSWindow *) window toSize:(NSSize)newSize;
-- (BOOL)windowShouldZoom:(NSWindow *)window toFrame:(NSRect)newFrame;
 - (void) resizeWebkitViewWithWindowSize:(NSSize)winSize;
+- (void) injectIntoWebkit;
+
+- (void)webView:(WebView *)sender resource:(id)identifier didFinishLoadingFromDataSource:(WebDataSource *)dataSource;
 
 @end
 
 @implementation AppController
-
-- (id) init
-{
-  self = [super init];
-  return self;
-}
 
 - (void) awakeFromNib
 {
@@ -57,13 +50,9 @@
   [[self viewMenu] setAutoenablesItems:NO];
   // Make sure they are set properly
   [self setMenuItems];
-  
-  // Show or hide hide the window's resizing controls:
-  [[[self window] standardWindowButton:NSWindowZoomButton] setHidden:[self isSimpleView]];
-  [[self window] setShowsResizeIndicator:![self isSimpleView]];
-  
+
   // Set the window's minimum size
-  [[self window] setMinSize:[self detailViewDefaultSize]];  
+  [[self window] setMinSize:[self detailViewSize]];  
   [self showBasicView:nil];
 }
 
@@ -101,21 +90,11 @@
   [self disableMenuItems];
   
   // Resize the window
-  NSRect newSize = [self NSRectWithOriginFrom:[self window] andSize:[self detailViewDefaultSize]];
+  NSRect newSize = [self NSRectWithOriginFrom:[self window] andSize:[self detailViewSize]];
   [self windowWillResize:[self window] toSize:newSize.size];
   [[self window] setFrame:newSize display:YES animate:YES];
   
-  // Reposition the viewport
-  [webview stringByEvaluatingJavaScriptFromString:@"window.scrollTo(163, 148);"];
-  [webview stringByEvaluatingJavaScriptFromString:@"var rules = 'body { overflow: hidden; }';\n"
-   "var ref = document.createElement('style');\n"
-   "ref.setAttribute('rel', 'stylesheet');\n"
-   "ref.setAttribute('type', 'text/css');\n"
-   "document.getElementsByTagName('head')[0].appendChild(ref);\n"
-   "ref.appendChild(document.createTextNode(rules));"];
-  
-  // Show the resize corner
-  [[self window] setShowsResizeIndicator:YES];
+  [self injectIntoWebkit];
   
   // Enable the right menu items
   [self setMenuItems];
@@ -126,17 +105,16 @@
   [self disableMenuItems];
   
   // Resize the window
-  NSRect newSize = [self NSRectWithOriginFrom:[self window] andSize:[self minimumWindowSize]];
+  NSRect newSize = [self NSRectWithOriginFrom:[self window] andSize:[self simpleViewSize]];
   [[self window] setFrame:newSize display:YES animate:YES];
-  
-  // Hide the resize corner
-  [[self window] setShowsResizeIndicator:NO];
-  
+
   // Enable the right menu items
   [self setMenuItems];
 }
 
-- (NSSize) minimumWindowSize
+#pragma mark Private Methods
+
+- (NSSize) simpleViewSize
 {
   NSNumber *minWidth = [NSNumber numberWithFloat:([stations frame].size.width + 40)];
   NSNumber *minHeight = [NSNumber numberWithFloat:([stations frame].size.height + 90)];
@@ -145,16 +123,9 @@
   return size;
 }
 
-- (NSSize) detailViewDefaultSize
+- (NSSize) detailViewSize
 {
-  NSSize minWidth = [self minimumWindowSize];
-    
-  NSNumber *width = [NSNumber numberWithInt:(DETAIL_WIDTH > minWidth.width ? DETAIL_WIDTH : minWidth.width)];
-  NSNumber *height = [NSNumber numberWithInt:(DETAIL_HEIGHT > minWidth.height ? DETAIL_HEIGHT : minWidth.height)];
-    
-  NSSize detailSize = NSMakeSize([width floatValue], [height floatValue]);
-  
-  return detailSize;
+  return (NSSize)NSMakeSize(DETAIL_WIDTH, DETAIL_HEIGHT);
 }
 
 - (NSRect) NSRectWithOriginFrom:(NSWindow*)window andSize:(NSSize)size
@@ -185,8 +156,8 @@
 - (BOOL) isSimpleView
 {
   // Comparing NSSize == NSSize complains about binary comparison.
-  return ([self minimumWindowSize].width == [[self window] frame].size.width &&
-      [self minimumWindowSize].height == [[self window] frame].size.height);
+  return ([self simpleViewSize].width == [[self window] frame].size.width &&
+      [self simpleViewSize].height == [[self window] frame].size.height);
 }
 
 - (NSMenu*) viewMenu
@@ -196,19 +167,13 @@
 
 - (NSSize)windowWillResize:(NSWindow *) window toSize:(NSSize)newSize
 {
-  if (newSize.width >= [self detailViewDefaultSize].width && newSize.height >= [self detailViewDefaultSize].height)
+  if (newSize.width >= [self detailViewSize].width && newSize.height >= [self detailViewSize].height)
     [self resizeWebkitViewWithWindowSize:newSize];
   
   if ([[self window] showsResizeIndicator])
     return newSize; //resize happens
   else
     return [[self window] frame].size; //no change
-}
-
-- (BOOL)windowShouldZoom:(NSWindow *)window toFrame:(NSRect)newFrame
-{
-  //let the zoom happen if showsResizeIndicator is YES
-  return [[self window] showsResizeIndicator];
 }
 
 - (void) resizeWebkitViewWithWindowSize:(NSSize)winSize
@@ -222,7 +187,7 @@
   // Work out new y and height
   // 1. Figure out new height.
   float newHeight = (winSize.height - (VIEW_BORDER*2) - TITLEBAR_HEIGHT);
-  newFrame.size.height = (newHeight > MIN_WEBKIT_HEIGHT ? newHeight : MIN_WEBKIT_HEIGHT);
+  newFrame.size.height = newHeight;
   // 2. Calc difference between old height & new height
   NSNumber *heightDiff = [NSNumber numberWithFloat:(newFrame.size.height - [webview frame].size.height)];
   // 3. Subtract difference in 2 from y
@@ -231,13 +196,31 @@
   // Work out new x and width
   // 1. Figure out new width
   float newWidth = ((winSize.width - [webview frame].origin.x)-VIEW_BORDER);
-  newFrame.size.width = (newWidth > MIN_WEBKIT_WIDTH ? newWidth : MIN_WEBKIT_WIDTH);
+  newFrame.size.width = newWidth;
   // 2. Figure out new x
   newFrame.origin.x = [webview frame].origin.x;
 
   // Set new size for webview
   [webview setFrame:newFrame];
   [webview setNeedsDisplay:YES];
+}
+
+- (void) injectIntoWebkit
+{
+  // Reposition the viewport
+  [webview stringByEvaluatingJavaScriptFromString:@"window.scrollTo(163, 148);"];
+  [webview stringByEvaluatingJavaScriptFromString:@"var rules = 'body { overflow: hidden; }';\n"
+   "var ref = document.createElement('style');\n"
+   "ref.setAttribute('rel', 'stylesheet');\n"
+   "ref.setAttribute('type', 'text/css');\n"
+   "document.getElementsByTagName('head')[0].appendChild(ref);\n"
+   "ref.appendChild(document.createTextNode(rules));"];
+}
+
+#pragma mark Webkit LoadDelegate Methods
+- (void)webView:(WebView *)sender resource:(id)identifier didFinishLoadingFromDataSource:(WebDataSource *)dataSource
+{
+  [self injectIntoWebkit];
 }
 
 @end
