@@ -19,6 +19,7 @@
 }
 
 - (IBAction) toggleButtonClicked: (id)sender;
+- (IBAction) radioChanged: (id)sender;
 - (IBAction) showDetailView: (id)sender;
 - (IBAction) showBasicView: (id)sender;
 

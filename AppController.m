@@ -23,12 +23,16 @@
 
 @interface AppController ()
 
+- (void) playRadioStation: (NSString*)title;
 - (NSSize) simpleViewSize;
 - (NSSize) detailViewSize;
 - (NSRect) NSRectWithOriginFrom:(NSWindow*)window andSize:(NSSize)size;
 - (void) setMenuItems;
 - (void) disableMenuItems;
+
 - (BOOL) isSimpleView;
+- (BOOL) isPlaying;
+
 - (NSMenu*) viewMenu;
 - (NSSize)windowWillResize:(NSWindow *) window toSize:(NSSize)newSize;
 - (void) resizeWebkitViewWithWindowSize:(NSSize)winSize;
@@ -56,6 +60,17 @@
   [self showBasicView:nil];
 }
 
+- (void) playRadioStation: (NSString*)title
+{
+  // Normalize the station title
+  NSString *slug = [[title lowercaseString] stringByReplacingOccurrencesOfString:@" " withString:@"_"];
+  // Figure out the URL to load
+  NSString * urlToLoad = [NSString stringWithFormat:@"http://www.bbc.co.uk/iplayer/playlive/bbc_%@/", slug];
+  NSLog(@"URL: %@", urlToLoad);
+  // DJ, spin that shit!
+  [webview setMainFrameURL:urlToLoad];
+}
+
 - (IBAction) toggleButtonClicked:(id)sender
 {
   NSLog(@"Button is currently: %@", [toggleButton title]);
@@ -64,18 +79,9 @@
     // Need to start it all playing
     [toggleButton setTitle:TITLE_STOP];
     
-    // Figure out the URL to load
-    NSString * stationTitle = [[stations selectedCell] title];
-    stationTitle = [stationTitle lowercaseString];
-    stationTitle = [stationTitle stringByReplacingOccurrencesOfString:@" " withString:@"_"];
-    
-    NSLog(@"Station: %@", stationTitle);
-    
-    // Set the URL of the webview
-    NSString * urlToLoad = [NSString stringWithFormat:@"http://www.bbc.co.uk/iplayer/playlive/bbc_%@/", stationTitle];
-    NSLog(@"URL: %@", urlToLoad);
-    [webview setMainFrameURL:urlToLoad];
+    [self playRadioStation:[[stations selectedCell] title]];
 
+    NSLog(@"Station: %@", [[stations selectedCell] title]);
   } else {
     // Stop it all playing
     [toggleButton setTitle:TITLE_START];
@@ -83,6 +89,16 @@
     [webview stopLoading:self];
     [webview setMainFrameURL:@"about:blank"];
   }
+}
+
+- (IBAction) radioChanged: (id)sender
+{
+  NSLog(@"%s", _cmd);
+  NSLog(@"New station: %@", [[stations selectedCell] title]);
+  NSLog(@"Currently playing: %@", ([self isPlaying] ? @"YES" : @"NO"));
+  
+  if ([self isPlaying])
+    [self playRadioStation:[[stations selectedCell] title]];
 }
 
 - (IBAction) showDetailView: (id)sender
@@ -158,6 +174,11 @@
   // Comparing NSSize == NSSize complains about binary comparison.
   return ([self simpleViewSize].width == [[self window] frame].size.width &&
       [self simpleViewSize].height == [[self window] frame].size.height);
+}
+
+- (BOOL) isPlaying
+{
+  return ([[toggleButton title] caseInsensitiveCompare:TITLE_STOP] == NSOrderedSame);
 }
 
 - (NSMenu*) viewMenu
