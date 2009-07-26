@@ -106,9 +106,9 @@
   [self disableMenuItems];
   
   // Resize the window
-  NSRect newSize = [self NSRectWithOriginFrom:[self window] andSize:[self detailViewSize]];
-  [self windowWillResize:[self window] toSize:newSize.size];
-  [[self window] setFrame:newSize display:YES animate:YES];
+  NSRect newRect = [self NSRectWithOriginFrom:[self window] andSize:[self detailViewSize]];
+  [self windowWillResize:[self window] toSize:newRect.size];
+  [[self window] setFrame:newRect display:YES animate:YES];
   
   [self injectIntoWebkit];
   
@@ -144,9 +144,16 @@
   return (NSSize)NSMakeSize(DETAIL_WIDTH, DETAIL_HEIGHT);
 }
 
-- (NSRect) NSRectWithOriginFrom:(NSWindow*)window andSize:(NSSize)size
+- (NSRect) NSRectWithOriginFrom:(NSWindow*)window andSize:(NSSize)newSize
 {
-  return NSMakeRect([window frame].origin.x, [window frame].origin.y, size.width, size.height);
+  NSRect currentRect = [window frame];
+  NSPoint currentOrigin = currentRect.origin;
+  NSSize currentSize = currentRect.size;
+  
+  NSNumber *heightAdjustment = [NSNumber numberWithInt:(currentSize.height - newSize.height)];
+  NSRect newRect = NSMakeRect(currentOrigin.x, (currentOrigin.y+[heightAdjustment floatValue]), newSize.width, newSize.height);
+  
+  return newRect;
 }
 
 // En/Dis-ables the menu items as appropriate for current window size.
